@@ -114,6 +114,12 @@ class CoreAxi(p: Parameters, coreModuleName: String) extends RawModule {
     itcmArbiter.io.source(0).writeDataStrb := 0.U
     core.io.ibus.rdata := itcmArbiter.io.source(0).readData.bits
     core.io.ibus.ready := true.B  // Can always read from TCM
+    // Connect fault for the ibus.
+    core.io.ibus.fault.valid :=
+        core.io.ibus.valid && !(memoryRegions(0).contains(core.io.ibus.addr))
+    core.io.ibus.fault.bits.write := false.B
+    core.io.ibus.fault.bits.addr := 0.U
+    core.io.ibus.fault.bits.epc := core.io.ibus.addr
 
     // Build DTCM and connect to dbus
     val dtcmSizeBytes = 32 * 1024 // 32 kB
@@ -166,5 +172,6 @@ class CoreAxi(p: Parameters, coreModuleName: String) extends RawModule {
     val ebus2axi = DBus2Axi(p)
     ebus2axi.io.dbus <> core.io.ebus.dbus
     ebus2axi.io.axi <> io.axi_master
+    ebus2axi.io.fault <> core.io.ebus.fault
   }
 }

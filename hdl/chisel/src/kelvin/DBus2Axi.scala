@@ -51,6 +51,7 @@ class DBus2Axi(p: Parameters) extends Module {
   val io = IO(new Bundle {
     val dbus = Flipped(new DBusIO(p))
     val axi = new AxiMasterIO(p.axi2AddrBits, p.axi2DataBits, p.axi2IdBits)
+    val fault = Valid(new FaultInfo(p))
   })
 
   // Top-level state machine
@@ -194,6 +195,19 @@ class DBus2Axi(p: Parameters) extends Module {
   io.dbus.ready := Mux(io.dbus.write,
                        io.axi.write.resp.fire && (writeAddrQ.io.count === 0.U) && (writeDataQ.io.count === 0.U) && (transactionsCompleted + 1.U === txnCount),
                        io.axi.read.data.fire && io.axi.read.data.bits.last && (transactionsCompleted + 1.U === txnCount))
+
+  // Fault reporting
+  io.fault.valid := MuxCase(false.B, Array(
+    io.axi.write.resp.valid ->
+      ((io.axi.write.resp.bits.resp =/= AxiResponseType.OKAY.asUInt) &&
+      (io.axi.write.resp.bits.resp =/= AxiResponseType.EXOKAY.asUInt)),
+    (io.axi.read.data.valid && io.axi.read.data.bits.last) ->
+      ((io.axi.read.data.bits.resp =/= AxiResponseType.OKAY.asUInt) &&
+      (io.axi.read.data.bits.resp =/= AxiResponseType.EXOKAY.asUInt)),
+  ))
+  io.fault.bits.write := io.axi.write.resp.valid
+  io.fault.bits.addr := io.dbus.addr
+  io.fault.bits.epc := io.dbus.pc
 }
 
 object EmitDBus2Axi extends App {
