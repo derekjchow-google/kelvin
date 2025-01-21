@@ -99,3 +99,9 @@ object UIntToVec {
     ))
   }
 }
+
+object Contains {
+  def apply(idx: UInt, start: UInt, end: UInt): Bool = {
+    (idx >= start) && (idx < end)
+  }
+}
