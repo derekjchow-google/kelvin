@@ -308,3 +308,31 @@ async def core_mini_axi_write_read_memory(dut):
     rdata = await core_mini_axi.read_line(0x0)
 
     assert (wdata == rdata).all()
+
+
+@cocotb.test()
+async def core_mini_axi_run_binary_example_add(dut):
+    """Basic test to start up a binary."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    await ClockCycles(dut.io_aclk, 10)
+
+    file_path = "${PATH_TO_REPO}/tests/cocotb/example_add.elf"
+    with open(file_path, 'rb') as f:
+      start_pc = await core_mini_axi.load_elf(f)
+      input1_addr = core_mini_axi.lookup_symbol(f, 'input1_data')
+      input2_addr = core_mini_axi.lookup_symbol(f, 'input2_data')
+      output_addr = core_mini_axi.lookup_symbol(f, 'output_data')
+
+    # Program inputs
+    inputs1 = np.arange(8, dtype=np.int32)
+    inputs2 = np.ones([8], dtype=np.int32)
+    await core_mini_axi.write(input1_addr, inputs1.view(np.uint8))
+    await core_mini_axi.write(input2_addr, inputs2.view(np.uint8))
+
+    await core_mini_axi.execute_from(start_pc)
+    await core_mini_axi.wait_for_wfi()
+
+    result = (await core_mini_axi.read(output_addr, 32)).view(np.int32)
+    assert (result == (inputs1 + inputs2)).all()
