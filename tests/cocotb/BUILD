@@ -9,7 +9,10 @@ verilator_cocotb_test(
     waves = True,
     hdl_toplevel = "CoreMiniAxi",
     seed = "42",
-    test_module = ["core_mini_axi_sim.py"],
+    test_module = [
+        "core_mini_axi_sim.py",
+        "axi_slave_agent.py",
+    ],
     verilog_sources = [
         "//hdl/chisel/src/kelvin:core_mini_axi_cc_library_verilog"
     ],

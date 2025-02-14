@@ -9,6 +9,8 @@ from cocotb.clock import Clock
 from cocotb.triggers import Timer, ClockCycles
 from elftools.elf.elffile import ELFFile
 
+from tests.cocotb.axi_slave_agent import axi_slave_agent
+
 def format_line_from_word(word, addr):
   shift = addr % 16
   line = np.zeros([4], dtype=np.uint32)
@@ -583,3 +585,36 @@ async def core_mini_axi_finish_txn_before_halt_test(dut):
     dut.io_axi_master_read_addr_ready.value = 0
     dut.io_axi_master_write_addr_ready.value = 0
     await ClockCycles(dut.io_aclk, 1)
+
+@cocotb.test()
+async def core_mini_axi_queue_write_read_memory_stress_test(dut):
+    """Stress test reading/writing from DTCM."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    await ClockCycles(dut.io_aclk, 10)
+
+    agent = axi_slave_agent(dut)
+
+    DTCM_START = 0x12000
+
+    # Queue in some writes
+    for i in range(0, 5000):
+      idx = i % 8
+      bursts = (i % 4) + 1
+      await agent.write(0x12000 + idx, [20], id=idx, wait_for_resp=False,
+                        addr_delay=random.randint(0, 3), data_delay=3)
+    
+    for i in range(0, 5000):
+      idx = i % 8
+      bursts = (i % 4) + 1
+      
+      await agent.read(0x12000 + idx, 16*bursts, id=8+idx, wait_for_resp=False,
+                       delay=random.randint(0, 3))
+
+    await agent.init()
+    for _ in tqdm.trange(100000):
+      await ClockCycles(dut.io_aclk, 1)
+
+    assert agent.ar_fifo.qsize() == 0
+    assert agent.aw_fifo.qsize() == 0
