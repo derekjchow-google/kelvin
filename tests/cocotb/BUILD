@@ -18,6 +18,7 @@ template_rule(
             ],
         },
     },
+    build_args = ["-Wno-WIDTH"],
     defines = {
         "USE_GENERIC" : "",
     },

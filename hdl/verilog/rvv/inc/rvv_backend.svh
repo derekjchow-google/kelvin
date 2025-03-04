@@ -67,6 +67,7 @@ typedef enum logic [1:0] {
 typedef struct packed {
   RVVOpCode             opcode;   // effectively bits [6:0] from instruction
   logic [24:0]          bits;     // bits [31:7] from instruction
+  logic [`PC_WIDTH-1:0] pc;
 } RVVInstruction;
 
 // An command internal to the RVVCore. The immediate value of this command has

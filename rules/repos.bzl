@@ -27,18 +27,22 @@ def kelvin_repos():
         ],
     )
 
-    http_archive(
+    native.local_repository(
         name = "rules_hdl",
-        sha256 = "1b560fe7d4100486784d6f2329e82a63dd37301e185ba77d0fd69b3ecc299649",
-        strip_prefix = "bazel_rules_hdl-7a1ba0e8d229200b4628e8a676917fc6b8e165d1",
-        urls = [
-            "https://github.com/hdl/bazel_rules_hdl/archive/7a1ba0e8d229200b4628e8a676917fc6b8e165d1.tar.gz",
-        ],
-        patches = [
-            "@kelvin_hw//external:0001-Use-systemc-in-verilator-and-support-verilator-in-co.patch",
-        ],
-        patch_args = ["-p1"],
+        path = "/home/derekjchow/libraries/bazel_rules_hdl",
     )
+    #http_archive(
+    #    name = "rules_hdl",
+    #    sha256 = "1b560fe7d4100486784d6f2329e82a63dd37301e185ba77d0fd69b3ecc299649",
+    #    strip_prefix = "bazel_rules_hdl-7a1ba0e8d229200b4628e8a676917fc6b8e165d1",
+    #    urls = [
+    #        "https://github.com/hdl/bazel_rules_hdl/archive/7a1ba0e8d229200b4628e8a676917fc6b8e165d1.tar.gz",
+    #    ],
+    #    patches = [
+    #        "@kelvin_hw//external:0001-Use-systemc-in-verilator-and-support-verilator-in-co.patch",
+    #    ],
+    #    patch_args = ["-p1"],
+    #)
 
     # See https://github.com/bazelbuild/rules_scala/releases for up to date version information.
     rules_scala_version = "73719cbf88134d5c505daf6c913fe4baefd46917"

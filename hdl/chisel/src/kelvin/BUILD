@@ -60,6 +60,15 @@ chisel_library(
         "rvv/RvvDecode.scala",
         "rvv/RvvInterface.scala",
     ],
+    resources = [
+        "//hdl/verilog/rvv/inc:rvv_backend_define.svh",
+        "//hdl/verilog/rvv/inc:rvv_backend_config.svh",
+        "//hdl/verilog/rvv/inc:rvv_backend.svh",
+        "//hdl/verilog/rvv/design:Aligner.sv",
+        "//hdl/verilog/rvv/design:MultiFifo.sv",
+        "//hdl/verilog/rvv/design:RvvCore.sv",
+        "//hdl/verilog/rvv/design:RvvFrontEnd.sv",
+    ],
     deps = [
         ":kelvin_base",
         "//hdl/chisel/src/common:library",

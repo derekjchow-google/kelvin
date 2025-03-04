@@ -300,7 +300,7 @@ class Decode(p: Parameters, pipeline: Int) extends Module {
 
   // Rvv extension interlock
   val rvvEn = if (p.enableRvv) {
-    !d.rvv.get.valid || (!io.serializeIn.brcond && io.rvv.get.ready)
+    !io.serializeIn.brcond && !(d.rvv.get.valid && !io.rvv.get.ready)
   } else { true.B }
 
   // Fence interlock.
@@ -440,7 +440,8 @@ class Decode(p: Parameters, pipeline: Int) extends Module {
   }
 
   if (p.enableRvv) {
-    io.rvv.get.valid := decodeEn && d.rvv.get.valid
+    io.rvv.get.valid := d.rvv.get.valid && !io.branchTaken &&
+        !io.serializeIn.jump && !io.serializeOut.brcond && !io.serializeOut.wfi
     io.rvv.get.bits := d.rvv.get.bits
   }
 

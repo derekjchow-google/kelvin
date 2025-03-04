@@ -21,6 +21,7 @@ exports_files(
         "rvv.svh",
         "Aligner.sv",
         "MultiFifo.sv",
+        "RvvCore.sv",
         "RvvFrontEnd.sv",
     ],
     visibility = ["//visibility:public"],
