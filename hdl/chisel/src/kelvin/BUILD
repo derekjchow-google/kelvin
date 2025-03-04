@@ -226,6 +226,7 @@ chisel_library(
     deps = [
         ":KelvinScmInfo",
         ":kelvin_base",
+        ":kelvin_rvv",
         "//hdl/chisel/src/common",
         "//hdl/chisel/src/common:instruction_buffer",
     ],
@@ -354,6 +355,31 @@ chisel_cc_library(
     vopts = [
         "-DUSE_GENERIC",
     ],
+)
+
+chisel_cc_library(
+    name = "rvv_core_mini_axi_cc_library",
+    chisel_lib = ":kelvin",
+    emit_class = "kelvin.EmitCore",
+    extra_outs = [
+        "VRvvCoreMiniAxi_parameters.h",
+        "RvvCoreMiniAxi.zip",
+    ],
+    gen_flags = [
+        "--enableFetchL0=False",
+        "--fetchDataBits=128",
+        "--lsuDataBits=128",
+        "--enableVector=False",
+        "--enableRvv=True",
+        "--moduleName=RvvCoreMini",
+        "--useAxi",
+    ],
+    vopts = [
+        "-DUSE_GENERIC",
+        "-Wno-WIDTH",
+    ],
+    module_name = "RvvCoreMiniAxi",
+    verilog_file_path = "RvvCoreMiniAxi.sv",
 )
 
 verilog_zip_bundle(

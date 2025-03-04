@@ -301,6 +301,13 @@ class SCore(p: Parameters) extends Module {
   }
 
   // ---------------------------------------------------------------------------
+  // Rvv Extension
+  // Tie off rvv decode bits until the core is integrated.
+  if (p.enableRvv) {
+    decode.foreach(_.io.rvv.get.ready := false.B)
+  }
+
+  // ---------------------------------------------------------------------------
   // Fetch Bus
   // Mux valid
   io.ibus.valid := Mux(lsu.io.ibus.valid, lsu.io.ibus.valid, fetch.io.ibus.valid)
