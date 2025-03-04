@@ -56,9 +56,12 @@ chisel_library(
     name = "kelvin_rvv",
     srcs = [
         "rvv/RvvAlu.scala",
+        "rvv/RvvCore.scala",
         "rvv/RvvDecode.scala",
+        "rvv/RvvInterface.scala",
     ],
     deps = [
+        ":kelvin_base",
         "//hdl/chisel/src/common:library",
     ],
 )
@@ -266,6 +269,7 @@ chisel_library(
         ":RstSync",
         ":clock_gate",
         ":kelvin_base",
+        ":kelvin_rvv",
         ":kelvin_scalar",
         ":kelvin_vector",
         ":srams",
