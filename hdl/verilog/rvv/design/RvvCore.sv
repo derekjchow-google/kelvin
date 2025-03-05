@@ -44,12 +44,6 @@ module RvvCore#(parameter N = 4,
   output RegDataT async_rd_data,
   input logic async_rd_ready
 );
-
-  // Tie-offs
-  assign async_rd_valid = 0;
-  assign async_rd_addr = 0;
-  assign async_rd_data = 0;
-
   logic [N-1:0] frontend_cmd_valid;
   RVVCmd [N-1:0] frontend_cmd_data;
   logic [$clog2(2*N + 1)-1:0] queue_capacity;
@@ -106,10 +100,97 @@ module RvvCore#(parameter N = 4,
     end
   end
 
-  // Tie-off cmd_buffer until backend is connected
+  // Convert multi-fifo to rvv_backend interface
+  logic   [`ISSUE_LANE-1:0] insts_valid_rvs2cq;
+  logic   [`ISSUE_LANE-1:0] insts_ready_cq2rvs;  
   always_comb begin
     cmd_buffer_ready_out = 0;
+    for (int i = 0; i < `ISSUE_LANE; i++) begin
+      cmd_buffer_ready_out = cmd_buffer_ready_out + insts_ready_cq2rvs[i];
+      insts_valid_rvs2cq[i] = i < cmd_buffer_fill_level;
+    end
   end
+
+  // Back-end ============================================================
+
+  // LSU Tie-offs
+  logic   [`NUM_DP_UOP-1:0] uop_valid_lsu_rvv2rvs;
+  UOP_LSU_RVV2RVS_t [`NUM_DP_UOP-1:0] uop_lsu_rvv2rvs;
+  logic   [`NUM_DP_UOP-1:0] uop_ready_lsu_rvs2rvv;
+  logic   [`NUM_DP_UOP-1:0] uop_valid_lsu_rvs2rvv;
+  UOP_LSU_RVS2RVV_t [`NUM_DP_UOP-1:0] uop_lsu_rvs2rvv;
+  logic   [`NUM_DP_UOP-1:0] uop_ready_rvv2rvs;
+  always_comb begin
+    uop_ready_lsu_rvs2rvv = 0;
+    uop_valid_lsu_rvs2rvv = 0;
+    for (int i = 0; i < `NUM_DP_UOP; i++) begin
+`ifdef TB_SUPPORT
+      uop_lsu_rvs2rvv[i].uop_pc = 0;
+`endif
+      uop_lsu_rvs2rvv[i].uop_type = IS_LOAD;
+      uop_lsu_rvs2rvv[i].uop_id = 0;
+      uop_lsu_rvs2rvv[i].vregfile_write_data = 0;
+    end
+  end
+
+  // Scalar regfile write-back tie-offs
+  // TODO(derekjchow): Properly arbitrate write-back tie-offs by extending
+  // interface. For time being, only accept from slot 0.
+  logic    [`NUM_RT_UOP-1:0] rt_xrf_valid_rvv2rvs;
+  RT2XRF_t [`NUM_RT_UOP-1:0] rt_xrf_rvv2rvs;
+  logic    [`NUM_RT_UOP-1:0] rt_xrf_ready_rvs2rvv;
+  always_comb begin
+    rt_xrf_ready_rvs2rvv[0] = async_rd_ready;
+    async_rd_valid = rt_xrf_valid_rvv2rvs[0];
+    async_rd_addr = rt_xrf_rvv2rvs[0].rt_index;
+    async_rd_data = rt_xrf_rvv2rvs[0].rt_data;
+    for (int i = 1; i < `NUM_RT_UOP; i++) begin
+      rt_xrf_ready_rvs2rvv[i] = 0;
+    end
+  end
+
+  // CSR Update, unused for now
+  logic                            wr_vxsat_valid;
+  logic    [`VCSR_VXSAT_WIDTH-1:0] wr_vxsat;
+
+  // Trap handling tie-off
+  logic  trap_valid_rvs2rvv;
+  TRAP_t trap_rvs2rvv;
+  logic  trap_ready_rvv2rvs;
+  always_comb begin
+    trap_valid_rvs2rvv = 0;
+    trap_rvs2rvv.trap_uop_rob_entry = 0;
+  end
+
+  // CSR from last uop
+  logic          vcsr_valid;
+  RVVConfigState vector_csr;
+
+  rvv_backend backend(
+      .clk(clk),
+      .rst_n(rstn),
+      .insts_valid_rvs2cq(insts_valid_rvs2cq),
+      .insts_rvs2cq(cmd_buffer_data),
+      .insts_ready_cq2rvs(insts_ready_cq2rvs),
+      .uop_valid_lsu_rvv2rvs(uop_valid_lsu_rvv2rvs),
+      .uop_lsu_rvv2rvs(uop_lsu_rvv2rvs),
+      .uop_ready_lsu_rvs2rvv(uop_ready_lsu_rvs2rvv),
+      .uop_valid_lsu_rvs2rvv(uop_valid_lsu_rvs2rvv),
+      .uop_lsu_rvs2rvv(uop_lsu_rvs2rvv),
+      .uop_ready_rvv2rvs(uop_ready_rvv2rvs),
+      .rt_xrf_rvv2rvs(rt_xrf_rvv2rvs),
+      .rt_xrf_valid_rvv2rvs(rt_xrf_valid_rvv2rvs),
+      .rt_xrf_ready_rvs2rvv(rt_xrf_ready_rvs2rvv),
+      .wr_vxsat_valid(wr_vxsat_valid),
+      .wr_vxsat(wr_vxsat),
+      .trap_valid_rvs2rvv(trap_valid_rvs2rvv),
+      .trap_rvs2rvv(trap_rvs2rvv),
+      .trap_ready_rvv2rvs(trap_ready_rvv2rvs),
+      .vcsr_valid(vcsr_valid),
+      .vector_csr(vector_csr)
+  );
+
+
 
 
 endmodule

@@ -1,6 +1,11 @@
 
+`ifndef HDL_VERILOG_RVV_DESIGN_RVV_SVH
 `include "rvv_backend.svh"
-`include "rvv_backend_sva.svh"
+`endif
+
+`ifndef ALU_DEFINE_SVH
+`include "rvv_backend_alu.svh"
+`endif
 
 module rvv_backend_alu_unit_other
 (
@@ -27,6 +32,7 @@ module rvv_backend_alu_unit_other
   logic   [`ROB_DEPTH_WIDTH-1:0]      rob_entry;
   FUNCT6_u                            uop_funct6;
   logic   [`FUNCT3_WIDTH-1:0]         uop_funct3;
+  logic                               vm;
   EEW_e                               vd_eew;
   logic   [`VLEN-1:0]                 v0_data;
   logic                               v0_data_valid;

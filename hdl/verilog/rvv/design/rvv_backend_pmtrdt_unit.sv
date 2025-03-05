@@ -5,9 +5,17 @@
 // 1. Compare/Reduction/Compress instruction is optional based on parameters.
 // 2. the latency of all instructions is 2-cycles.
 
-`include "rvv_backend.svh"
+`ifndef HDL_VERILOG_RVV_DESIGN_RVV_DEFINE_SVH
+`include "rvv_backend_define.svh"
+`endif  // not defined HDL_VERILOG_RVV_DESIGN_RVV_DEFINE_SVH
+
+`ifndef RVV_ASSERT__SVH
 `include "rvv_backend_sva.svh"
+`endif
+
+`ifndef PMTRDT_DEFINE_SVH
 `include "rvv_backend_pmtrdt.svh"
+`endif
 
 module rvv_backend_pmtrdt_unit
 (

@@ -10,8 +10,13 @@
 //    b. vd EMUL for compare/reduction instruction is always 1.
 // 2. the latency of the module is 2-cycle for each uop.
 
-`include "rvv_backend.svh"
+`ifndef HDL_VERILOG_RVV_DESIGN_RVV_DEFINE_SVH
+`include "rvv_backend_define.svh"
+`endif  // not defined HDL_VERILOG_RVV_DESIGN_RVV_DEFINE_SVH
+
+`ifndef RVV_ASSERT__SVH
 `include "rvv_backend_sva.svh"
+`endif
 
 module rvv_backend_pmtrdt
 (

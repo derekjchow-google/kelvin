@@ -8,8 +8,13 @@
 // 4. Shift unit for shift instructions reuse arithmetic right shift to complete arithmetic and logic right shift.
 // 5. Mask unit can reuse logical operation for mask logical and regular logical instructions. And Mask unit can reuse find_first_1 logic for other mask instructions.
 
+`ifndef HDL_VERILOG_RVV_DESIGN_RVV_SVH
 `include "rvv_backend.svh"
+`endif
+
+`ifndef RVV_ASSERT__SVH
 `include "rvv_backend_sva.svh"
+`endif
 
 module rvv_backend_alu
 (

@@ -7,7 +7,9 @@
 // 3. Reuse arithmetic logic as much as possible.
 // 4. Low-power design.
 
+`ifndef HDL_VERILOG_RVV_DESIGN_RVV_SVH
 `include "rvv_backend.svh"
+`endif
 
 module rvv_backend_alu_unit
 (
