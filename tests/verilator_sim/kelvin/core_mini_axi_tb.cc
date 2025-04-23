@@ -208,6 +208,32 @@ void CoreMiniAxi_tb::Connect() {
   core_->io_axi_slave_write_resp_bits_resp(tlm2axi_signals_.bresp);
 }
 
+// absl::Status CoreMiniAxi_tb::ReadAsync(uint32_t addr,
+//                                        absl::span<const uint8_t> data) {
+//   // TODO(derekjchow): Finish me
+// }
+
+absl::Status CoreMiniAxi_tb::WriteSync(uint32_t addr,
+                                       absl::span<const uint8_t> data) {
+  CHECK_OK(WriteAsync(addr, data));
+  absl::MutexLock lock(&transfer_queue_mtx_);
+  transfer_queue_cv_.Wait(&transfer_queue_mtx_);
+  return absl::OkStatus();
+}
+
+absl::Status CoreMiniAxi_tb::WriteAsync(uint32_t addr,
+                                        absl::span<const uint8_t> data) {
+  std::vector<DataTransfer> transfers;
+  transfers.push_back(utils::Write(
+      addr, const_cast<uint8_t*>(data.data()), data.size()));
+  {
+    absl::MutexLock lock(&transfer_queue_mtx_);
+    transfer_queue_.push(
+        std::make_unique<TrafficDesc>(utils::merge(transfers)));
+  }
+  return absl::OkStatus();
+}
+
 absl::Status CoreMiniAxi_tb::LoadElfSync(const std::string& file_name) {
   CHECK_OK(LoadElfAsync(file_name));
   absl::MutexLock lock(&transfer_queue_mtx_);

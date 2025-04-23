@@ -12,6 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+cc_binary(
+    name = "core_mini_axi_wrapper",
+    srcs = [
+        "kelvin/core_mini_axi_wrapper.cc",
+        #"@kelvin_hw//hdl/chisel/src/kelvin:VCore_parameters.h",
+    ],
+    #defines = [
+    #    "VERILATOR_MODEL=VCore",
+    #],
+    deps = [
+        #":kelvin_if",
+        #":sim_libs",
+        #":util",
+        "//hdl/chisel/src/kelvin:core_mini_axi_cc_library_cc",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
 cc_library(
     name = "elf",
     srcs = [

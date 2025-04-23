@@ -89,6 +89,12 @@ struct CoreMiniAxi_tb : Sysc_tb {
   bool tohost_halt = false;
   uint32_t tohost_val = 0;
 
+  // absl::Status ReadSync(uint32_t addr, absl::span<uint8_t>* data);
+  // absl::Status ReadAsync(uint32_t addr, absl::span<uint8_t>* data);
+
+  absl::Status WriteSync(uint32_t addr, absl::span<const uint8_t> data);
+  absl::Status WriteAsync(uint32_t addr, absl::span<const uint8_t> data);
+
   absl::Status LoadElfSync(const std::string& file_name);
   absl::Status LoadElfAsync(const std::string& file_name);
   // ClockGate and Reset should be done in the correct order:
