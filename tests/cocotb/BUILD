@@ -16,7 +16,40 @@ load("//rules:coco_tb.bzl", "vcs_cocotb_test", "verilator_cocotb_test")
 load("//rules:kelvin_v2.bzl", "kelvin_v2_binary")
 load("//rules:utils.bzl", "template_rule")
 load("@kelvin_hw//third_party/python:requirements.bzl", "requirement")
-package(default_visibility = ["//visibility:public"])
+
+verilator_cocotb_test(
+    name = "rvv_test",
+    hdl_toplevel = "RvvCoreMiniAxi",
+    verilog_sources = [
+        "//hdl/chisel/src/kelvin:rvv_core_mini_axi_cc_library_verilog"
+    ],
+    build_args = [
+        "-Wno-WIDTH",
+        "-Wno-CASEINCOMPLETE",
+        "-Wno-LATCH",
+        "-Wno-SIDEEFFECT",
+        "-Wno-MULTIDRIVEN",
+        "-Wno-UNOPTFLAT",
+        "-Wno-CASEOVERLAP",
+        # Warnings that we disable for fpnew
+        "-Wno-ASCRANGE",
+        "-Wno-WIDTHEXPAND",
+        "-Wno-WIDTHTRUNC",
+        "-Wno-UNSIGNED",
+    ],
+    defines = {
+        "USE_GENERIC" : "",
+    },
+    waves = True,
+    seed = "42",
+    test_module = ["rvv_test.py"],
+    deps = [
+        "//kelvin_test_utils:core_mini_axi_sim_interface",
+        requirement("tqdm"),
+    ],
+    data = ["rvv.elf", "rvv2.elf"],
+)
+
 template_rule(
     verilator_cocotb_test,
     {

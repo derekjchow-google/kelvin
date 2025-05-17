@@ -304,6 +304,7 @@ chisel_library(
         "//hdl/chisel/src/common",
         "//hdl/chisel/src/common:fp",
         "//hdl/chisel/src/common:instruction_buffer",
+        "//hdl/chisel/src/common:scatter_gather",
     ],
 )
 

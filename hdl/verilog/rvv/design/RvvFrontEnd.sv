@@ -48,7 +48,11 @@ module RvvFrontEnd#(parameter N = 4,
   // Command output.
   output logic [N-1:0] cmd_valid_o,
   output RVVCmd [N-1:0] cmd_data_o,
-  input logic [CAPACITYBITS-1:0] queue_capacity_i  // Number of elements that can be enqueued
+  input logic [CAPACITYBITS-1:0] queue_capacity_i,  // Number of elements that can be enqueued
+
+  // Config state
+  output config_state_valid,
+  output RVVConfigState config_state
 );
   localparam COUNTBITS = $clog2(N + 1);
   typedef logic [COUNTBITS-1:0] count_t;
@@ -68,6 +72,15 @@ module RvvFrontEnd#(parameter N = 4,
     for (int i = 0; i < N; i++) begin
       valid_in_psum[i+1] = valid_in_psum[i] + inst_valid_i[i];
     end
+  end
+
+  // State, for time being lets do not state forwarding for timing
+  always_comb begin
+    config_state_valid = 1;
+    for (int i = 0; i < N; i++) begin
+      config_state_valid = config_state_valid & (!valid_inst_q[i]);
+    end
+    config_state = config_state_q;
   end
 
   logic inst_accepted [N-1:0];

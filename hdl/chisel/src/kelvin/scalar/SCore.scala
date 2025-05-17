@@ -180,6 +180,11 @@ class SCore(p: Parameters) extends Module {
   // Load/Store Unit
   lsu.io.busPort := regfile.io.busPort
   lsu.io.req <> dispatch.io.lsu
+  if (p.enableRvv) {
+    lsu.io.rvvState.get := io.rvvcore.get.configState
+    lsu.io.lsu2rvv.get <> io.rvvcore.get.lsu2rvv
+    io.rvvcore.get.rvv2lsu <> lsu.io.rvv2lsu.get
+  }
 
   // ---------------------------------------------------------------------------
   // Multiplier Unit
@@ -316,6 +321,7 @@ class SCore(p: Parameters) extends Module {
   if (p.enableRvv) {
     // Connect dispatch
     dispatch.io.rvv.get <> io.rvvcore.get.inst
+    dispatch.io.rvvState.get := io.rvvcore.get.configState
 
     // Register inputs
     io.rvvcore.get.rs := regfile.io.readData
