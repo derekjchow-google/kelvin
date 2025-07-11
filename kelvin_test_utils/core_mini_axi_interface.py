@@ -741,6 +741,7 @@ class CoreMiniAxiInterface:
     line_start = (addr - self.memory_base_addr) & 0xFFFFFFF0
     flat_data = list(itertools.chain(*data))
     flat_strb = list(itertools.chain(*strb))
+    print(f"Writing mem addr={hex(addr)} data={[int(x) for x in flat_data]} strb={[int(x) for x in flat_strb]}", flush=True)
     for i in range(0,len(flat_data)):
       if flat_strb[i] == 1:
         self.memory[line_start + i] = flat_data[i]
@@ -749,6 +750,7 @@ class CoreMiniAxiInterface:
   def read_memory(self, raddr):
     addr = int(raddr["addr"])
     size = (2 ** raddr["size"])
+    print(f"Read {size} bytes from 0x{hex(addr)}", flush=True)
     if addr < self.memory_base_addr or addr >= (self.memory_base_addr + len(self.memory)):
       return None
     offset = (addr - self.memory_base_addr)
@@ -785,8 +787,10 @@ class CoreMiniAxiInterface:
   async def wait_for_halted_semihost(self, elf, timeout_cycles=1000000):
     tohost = self.lookup_symbol(elf, "tohost")
     assert tohost != None
+    print(f"waiting for tohost={tohost}", flush=True)
     if cocotb.SIM_NAME == "Verilator":
       rv = await self.watch(tohost, timeout_cycles=timeout_cycles)
+      print(f"Got rv={rv}", flush=True)
       assert np.sum(np.frombuffer(rv[12:16], dtype=np.uint8)) == 1
     else:
       initial_rv = await self.read_word(tohost)
@@ -809,6 +813,8 @@ class CoreMiniAxiInterface:
           if self.dut.core.io_dbus_write.value == 1:
             wmask = int(self.dut.core.io_dbus_wmask.value)
             if (expected_wmask & wmask) == expected_wmask:
+              data = np.frombuffer(self.dut.core.io_dbus_wdata.value.buff, dtype=np.uint8)
+              print(f"Got wmask={wmask} data={data}", flush=True)
               return self.dut.core.io_dbus_wdata.value.buff
 
       await ClockCycles(self.dut.io_aclk, 1)

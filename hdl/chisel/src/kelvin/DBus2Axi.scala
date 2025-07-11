@@ -223,12 +223,21 @@ class DBus2AxiV2(p: Parameters) extends DBus2Axi(p) {
   io.axi.write.addr.bits.size := Ctz(io.dbus.size)
   io.axi.write.addr.bits.prot := 2.U
   io.axi.write.addr.bits.id := 0.U
+  when (io.axi.write.addr.fire) {
+    printf(cf"Writing to addr=0x${io.axi.write.addr.bits.addr}%x, size=${io.axi.write.addr.bits.size}\n")
+  }
+
 
   val wdataFired = RegInit(false.B)
   io.axi.write.data.valid := !wdataFired && io.dbus.valid && io.dbus.write
   io.axi.write.data.bits.data := io.dbus.wdata
   io.axi.write.data.bits.strb := io.dbus.wmask
   io.axi.write.data.bits.last := true.B
+  when (io.axi.write.data.fire) {
+    printf(cf"Firing ebus write, ")
+    printf(cf"data=0x${io.axi.write.data.bits.data}%x, ")
+    printf(cf"strb=0b${io.axi.write.data.bits.strb}%b\n")
+  }
 
   val wrespReceived = RegInit(false.B)
   io.axi.write.resp.ready := !wrespReceived && io.dbus.valid && io.dbus.write
@@ -258,12 +267,19 @@ class DBus2AxiV2(p: Parameters) extends DBus2Axi(p) {
   io.axi.read.addr.bits.size := Ctz(io.dbus.size)
   io.axi.read.addr.bits.prot := 2.U
   io.axi.read.addr.bits.id := 0.U
+  when (io.axi.write.addr.fire) {
+    printf(cf"Reading from addr=0x${io.axi.read.addr.bits.addr}%x, size=${io.axi.read.addr.bits.size}\n")
+  }
 
   val rdataReceived = RegInit(MakeInvalid(UInt(p.axi2DataBits.W)))
   io.axi.read.data.ready :=
       !rdataReceived.valid && io.dbus.valid && !io.dbus.write
   // Assert we only received single beat bursts.
   assert(!io.axi.read.data.fire || io.axi.read.data.bits.last)
+
+  when (io.axi.read.data.fire) {
+    printf(cf"Fired ebus read data=0x${io.axi.read.data.bits.data}%x\n")
+  }
 
   val readFinished = (io.axi.read.addr.fire || raddrFired) &&
                      (io.axi.read.data.fire || rdataReceived.valid)

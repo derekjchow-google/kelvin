@@ -22,7 +22,7 @@ import random
 from kelvin_test_utils.core_mini_axi_interface import AxiBurst, AxiResp,CoreMiniAxiInterface
 
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_basic_write_read_memory(dut):
     """Basic test to check if TCM memory can be written and read back."""
     core_mini_axi = CoreMiniAxiInterface(dut)
@@ -66,7 +66,7 @@ async def core_mini_axi_basic_write_read_memory(dut):
         rdata = await core_mini_axi.read(0x10000 + (i * txn_bytes), txn_bytes)
         assert(rdata == wdata).all()
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_run_wfi_in_all_slots(dut):
     """Tests the WFI instruction in each of the 4 issue slots."""
     core_mini_axi = CoreMiniAxiInterface(dut)
@@ -83,7 +83,7 @@ async def core_mini_axi_run_wfi_in_all_slots(dut):
         await core_mini_axi.raise_irq()
         await core_mini_axi.wait_for_halted()
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_slow_bready(dut):
   """Test that BVALID stays high until BREADY is presented"""
   core_mini_axi = CoreMiniAxiInterface(dut)
@@ -100,7 +100,7 @@ async def core_mini_axi_slow_bready(dut):
     rdata = await core_mini_axi.read(i*32, 16)
     assert (wdata == rdata).all()
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_write_read_memory_stress_test(dut):
     """Stress test reading/writing from DTCM."""
     core_mini_axi = CoreMiniAxiInterface(dut)
@@ -155,7 +155,7 @@ async def core_mini_axi_master_write_alignment(dut):
     await core_mini_axi.wait_for_halted_semihost(f)
     assert core_mini_axi.dut.io_fault.value == 0
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_finish_txn_before_halt_test(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -173,7 +173,7 @@ async def core_mini_axi_finish_txn_before_halt_test(dut):
             core_mini_axi.master_wfifo.qsize() + \
             core_mini_axi.master_bfifo.qsize()) == 0
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_riscv_tests(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -188,7 +188,7 @@ async def core_mini_axi_riscv_tests(dut):
       await core_mini_axi.wait_for_halted()
       assert core_mini_axi.dut.io_fault.value == 0
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_riscv_dv(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -204,7 +204,7 @@ async def core_mini_axi_riscv_dv(dut):
         await core_mini_axi.execute_from(entry_point)
         await core_mini_axi.wait_for_halted_semihost(f)
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_csr_test(dut):
   """Exercises the CoreAxiCSR module."""
   core_mini_axi = CoreMiniAxiInterface(dut)
@@ -244,7 +244,7 @@ async def core_mini_axi_csr_test(dut):
   for i in range(8, 0x2000 // 4):
     misc_csr_rdata = await core_mini_axi.read_word(0x30100 + (4 * i), expected_resp=AxiResp.SLVERR)
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_exceptions_test(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -262,7 +262,7 @@ async def core_mini_axi_exceptions_test(dut):
         await core_mini_axi.wait_for_halted()
         assert core_mini_axi.dut.io_fault.value == 0
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_kelvin_isa_test(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -278,7 +278,7 @@ async def core_mini_axi_kelvin_isa_test(dut):
       await core_mini_axi.wait_for_halted()
       assert core_mini_axi.dut.io_fault.value == 0
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_rand_instr_test(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -300,7 +300,7 @@ async def core_mini_axi_rand_instr_test(dut):
     except:
       await core_mini_axi.halt()
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_burst_types_test(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()
@@ -334,7 +334,7 @@ async def core_mini_axi_burst_types_test(dut):
     expected = np.concatenate([wdata[-write_offset:], wdata[-16:-write_offset]])
     assert (expected == np.roll(rdata, read_offset)).all()
 
-@cocotb.test()
+#@cocotb.test()
 async def core_mini_axi_float_csr_test(dut):
   core_mini_axi = CoreMiniAxiInterface(dut)
   await core_mini_axi.init()

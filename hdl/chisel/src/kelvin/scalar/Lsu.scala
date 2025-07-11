@@ -106,6 +106,15 @@ object LsuOp extends ChiselEnum {
   def isFlush(op: LsuOp.Type): Bool = {
     op.isOneOf(LsuOp.FENCEI, LsuOp.FLUSHAT, LsuOp.FLUSHALL)
   }
+
+  def opSize(op: LsuOp.Type): UInt = {
+    MuxCase(16.U, Seq(
+      op.isOneOf(LsuOp.LB, LsuOp.LBU, LsuOp.SB) -> 1.U,
+      op.isOneOf(LsuOp.LH, LsuOp.LHU, LsuOp.SH) -> 2.U,
+      op.isOneOf(LsuOp.LW, LsuOp.SW, LsuOp.FLOAT) -> 4.U,
+      LsuOp.isVector(op) -> 16.U,
+    ))
+  }
 }
 
 class LsuCmd(p: Parameters) extends Bundle {
@@ -252,15 +261,17 @@ class LsuSlot(bytesPerSlot: Int, bytesPerLine: Int) extends Bundle {
     VecInit(addrs.map(x => x(elemBits-1, 0)))
   }
 
-  def targetLineAddress(lastRead: Valid[UInt]): Valid[UInt] = {
+  def targetAddress(lastRead: Valid[UInt]): Valid[UInt] = {
     // Determine which lines are active. If a read was issued last cycle,
     // supress those lines.
     val lineAddrs = lineAddresses()
     val lineActive = (0 until bytesPerSlot).map(i =>
         active(i) && (!lastRead.valid || (lastRead.bits =/= lineAddrs(i))))
 
-    MuxCase(MakeInvalid(UInt((32-elemBits).W)), (0 until bytesPerSlot).map(
-        i => lineActive(i) -> MakeValid(true.B, lineAddrs(i))))
+    MuxCase(MakeInvalid(UInt(32.W)), (0 until bytesPerSlot).map(
+        i => lineActive(i) -> MakeValid(true.B, addrs(i))))
+    // MuxCase(MakeInvalid(UInt((32-elemBits).W)), (0 until bytesPerSlot).map(
+    //     i => lineActive(i) -> MakeValid(true.B, lineAddrs(i))))
   }
 
   def vectorUpdate(updated: Bool, rvv2lsu: Rvv2Lsu): LsuSlot = {
@@ -924,6 +935,10 @@ class LsuV2(p: Parameters) extends Lsu(p) {
       LsuBus.EXTERNAL -> io.ebus.dbus.rdata,
   ))
 
+  // when (readFired.valid && (readFired.bits.bus === LsuBus.EXTERNAL)) {
+  //   printf(cf"Fired ebus read data=0x${io.ebus.dbus.rdata}%x\n")
+  // }
+
   // ==========================================================================
   // Vector update
   val vectorUpdatedSlot = if (p.enableRvv) {
@@ -943,7 +958,7 @@ class LsuV2(p: Parameters) extends Lsu(p) {
       readFired.valid, readFired.bits.lineAddr, readData)
 
   // Compute next target transaction
-  val targetLine = loadUpdatedSlot.targetLineAddress(
+  val targetLine = loadUpdatedSlot.targetAddress(
       MakeValid(readFired.valid, readFired.bits.lineAddr))
   val targetLineAddr = targetLine.bits << 4
   val itcm = p.m.filter(_.memType == MemoryRegionType.IMEM)
@@ -957,6 +972,8 @@ class LsuV2(p: Parameters) extends Lsu(p) {
 
   val (wdata, wmask, wactive) = slot.scatter(targetLine.bits)
 
+  val opSize = LsuOp.opSize(slot.op)
+
   // ibus data path
   io.ibus.valid := loadUpdatedSlot.activeTransaction() && itcm && !slot.store
   io.ibus.addr := targetLineAddr
@@ -969,7 +986,7 @@ class LsuV2(p: Parameters) extends Lsu(p) {
   io.dbus.pc := slot.pc
   io.dbus.addr := targetLineAddr
   io.dbus.adrx := targetLineAddr
-  io.dbus.size := 16.U  // TODO(derekjchow): Don't be lazy
+  io.dbus.size := opSize
   io.dbus.wdata := Cat(wdata.reverse)
   io.dbus.wmask := Cat(wmask.reverse)
 
@@ -980,11 +997,20 @@ class LsuV2(p: Parameters) extends Lsu(p) {
   io.ebus.dbus.write := slot.store
   io.ebus.dbus.addr := targetLineAddr
   io.ebus.dbus.adrx := targetLineAddr
-  io.ebus.dbus.size := 16.U  // TODO(derekjchow): Don't be lazy
+  io.ebus.dbus.size := opSize
+  // io.ebus.dbus.size := 16.U
   io.ebus.dbus.wdata := Cat(wdata.reverse)
   io.ebus.dbus.wmask := Cat(wmask.reverse)
   io.ebus.dbus.pc := slot.pc
   io.ebus.internal := peri
+  // when (io.ebus.dbus.valid && io.ebus.dbus.ready && io.ebus.dbus.write) {
+  //   printf(cf"Firing ebus write addr=0x${io.ebus.dbus.addr}%x, ")
+  //   printf(cf"data=0x${io.ebus.dbus.wdata}%x, ")
+  //   printf(cf"wmask=0b${io.ebus.dbus.wmask}%b\n")
+  // }
+  // when (io.ebus.dbus.valid && io.ebus.dbus.ready && !io.ebus.dbus.write) {
+  //   printf(cf"Firing ebus read addr=0x${io.ebus.dbus.addr}%x\n")
+  // }
 
   val ibusFired = io.ibus.valid && io.ibus.ready
   val dbusFired = io.dbus.valid && io.dbus.ready
