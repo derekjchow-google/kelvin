@@ -64,11 +64,12 @@ class Lsu(p: Parameters) extends Module {
 
 object Lsu {
   def apply(p: Parameters): Lsu = {
-    if (p.useLsuV2) {
-      return Module(new LsuV2(p))
-    } else {
-      return Module(new LsuV1(p))
-    }
+    Module(new LsuSvWrapper(p))
+    // if (p.useLsuV2) {
+    //   return Module(new LsuV2(p))
+    // } else {
+    //   return Module(new LsuV1(p))
+    // }
   }
 }
 
@@ -1166,3 +1167,262 @@ class LsuV2(p: Parameters) extends Lsu(p) {
   io.active := !slot.slotIdle() || (opQueue.io.nEnqueued =/= 0.U)
 }
 
+object GenerateLsuSvBlackBoxSource {
+  def apply(p: Parameters, io: Data): String = {
+    val moduleInterface = "module LsuSvBlackBox (\n" ++
+        "  input  logic clock,\n" ++ "  input  logic reset,\n" ++
+        GenerateInterface(io, "io") ++ "\n);\n"
+
+    var inputs = """  // Dispatch interface
+                   |  LsuCmd [GENN-1:0] reqs;
+                   |  logic [GENN-1:0] req_valid;
+                   |  logic [GENN-1:0] req_ready;
+                   |  logic [GENN-1:0][31:0] xdata;
+                   |  logic [GENN-1:0][4:0] xaddr;
+                   |  logic [GENN-1:0][31:0] fdata;
+                   |  logic [GENN-1:0][4:0] faddr;
+                   |  logic rd_valid;
+                   |  logic [31:0] rd_data;
+                   |  logic flt_rd_valid;
+                   |  logic [31:0] flt_rd_data;
+                   |  always_comb begin
+                   |""".stripMargin
+    for (i <- 0 until p.instructionLanes) {
+      inputs +=
+          """    req_valid[GENI] = io_req_0_valid;
+            |    reqs[GENI].store = io_req_GENI_bits_store;
+            |    reqs[GENI].addr = io_req_GENI_bits_addr;
+            |    reqs[GENI].op = LsuOp'(io_req_GENI_bits_op);
+            |    reqs[GENI].pc = io_req_GENI_bits_pc;
+            |    reqs[GENI].elemWidth = io_req_GENI_bits_elemWidth;
+            |    reqs[GENI].nfields = io_req_GENI_bits_nfields;
+            |    xdata[GENI] = io_busPort_data_GENI;
+            |    xaddr[GENI] = io_busPort_addr_GENI;
+            |    fdata[GENI] = io_busPort_flt_data_GENI;
+            |    faddr[GENI] = io_busPort_flt_addr_GENI;
+            |""".stripMargin.replaceAll("GENI", i.toString)
+    }
+    inputs += "  end\n"
+    for (i <- 0 until p.instructionLanes) {
+      inputs += "    assign io_req_GENI_ready = req_ready[GENI];\n".replaceAll("GENI", i.toString)
+    }
+    inputs += "\n"
+
+    val nRvv2Lsu = 2
+    var rvv2lsu =
+        """  // Rvv2Lsu
+          |  logic         [NLSU-1:0] lsu_valid_rvv2lsu;
+          |  UOP_RVV2LSU_t [NLSU-1:0] lsu_rvv2lsu;
+          |  logic         [NLSU-1:0] lsu_ready_lsu2rvv;
+          |  always_comb begin
+          |""".stripMargin.replaceAll("NLSU", nRvv2Lsu.toString)
+    for (i <- 0 until nRvv2Lsu) {
+      rvv2lsu +=
+          """    lsu_valid_rvv2lsu[GENI] = io_rvv2lsu_GENI_valid;
+            |    lsu_rvv2lsu[GENI].vidx_valid = io_rvv2lsu_GENI_bits_idx_valid;
+            |    lsu_rvv2lsu[GENI].vidx_addr = io_rvv2lsu_GENI_bits_idx_bits_addr;
+            |    lsu_rvv2lsu[GENI].vidx_data = io_rvv2lsu_GENI_bits_idx_bits_data;
+            |    lsu_rvv2lsu[GENI].vregfile_read_valid = io_rvv2lsu_GENI_bits_vregfile_valid;
+            |    lsu_rvv2lsu[GENI].vregfile_read_addr = io_rvv2lsu_GENI_bits_vregfile_bits_addr;
+            |    lsu_rvv2lsu[GENI].vregfile_read_data = io_rvv2lsu_GENI_bits_vregfile_bits_data;
+            |    lsu_rvv2lsu[GENI].v0_valid = io_rvv2lsu_GENI_bits_mask_valid;
+            |    lsu_rvv2lsu[GENI].v0_data = io_rvv2lsu_GENI_bits_mask_bits;
+            |""".stripMargin.replaceAll("GENI", i.toString).replaceAll("NLSU", nRvv2Lsu.toString)
+    }
+    rvv2lsu += "  end\n"
+    for (i <- 0 until nRvv2Lsu) {
+      rvv2lsu += "    assign io_rvv2lsu_GENI_ready = lsu_ready_lsu2rvv[GENI];\n".replaceAll("GENI", i.toString)
+    }
+    rvv2lsu += "\n"
+
+    var lsu2rvv =
+        """  // Lsu2Rvv
+          |  logic [NLSU-1:0]               lsu_valid_lsu2rvv;
+          |  logic [NLSU-1:0][4:0]          lsu_addr_lsu2rvv;
+          |  logic [NLSU-1:0][GENVLENB-1:0] lsu_wdata_lsu2rvv;
+          |  logic [NLSU-1:0]               lsu_last_lsu2rvv;
+          |  logic [NLSU-1:0]               lsu_ready_rvv2lsu;
+          |  always_comb begin
+          |""".stripMargin.replaceAll("GENVLENB", p.rvvVlen.toString).replaceAll("NLSU", nRvv2Lsu.toString)
+    for (i <- 0 until nRvv2Lsu) {
+      lsu2rvv +=
+          """    lsu_ready_rvv2lsu[GENI] = io_lsu2rvv_GENI_ready;
+            |""".stripMargin.replaceAll("GENI", i.toString)
+    }
+    lsu2rvv += "  end\n"
+    for (i <- 0 until nRvv2Lsu) {
+      lsu2rvv +=
+          """  assign lsu_valid_lsu2rvv[GENI] = io_lsu2rvv_GENI_valid;
+            |  assign lsu_addr_lsu2rvv[GENI]  = io_lsu2rvv_GENI_bits_addr;
+            |  assign lsu_wdata_lsu2rvv[GENI] = io_lsu2rvv_GENI_bits_data;
+            |  assign lsu_last_lsu2rvv[GENI]  = io_lsu2rvv_GENI_bits_last;
+            |""".stripMargin.replaceAll("GENI", i.toString)
+    }
+    lsu2rvv += "\n"
+
+    val configState =
+        """  // RvvConfig State
+          |  RVVConfigState config_state;
+          |  always_comb begin
+          |    config_state.vl     = io_rvvState_bits_vl;
+          |    config_state.vstart = io_rvvState_bits_vstart;
+          |    config_state.ma     = io_rvvState_bits_ma;
+          |    config_state.ta     = io_rvvState_bits_ta;
+          |    config_state.xrm    = RVVXRM'(io_rvvState_bits_xrm);
+          |    config_state.sew    = RVVSEW'(io_rvvState_bits_sew);
+          |    config_state.lmul   = RVVLMUL'(io_rvvState_bits_lmul);
+          |  end
+          |
+          |""".stripMargin
+
+    val subModule =
+        """  logic rstn;
+          |  always_comb begin
+          |    rstn = !reset;
+          |  end
+          |
+          |  LsuSv#(.N(GENN), .BUSLENB(GENVLENB)) lsu(
+          |    .clk(clock),
+          |    .rstn(rstn),
+          |    .req_valid(req_valid),
+          |    .req_data(reqs),
+          |    .req_ready(req_ready),
+          |    .xdata(xdata),
+          |    .xaddr(xaddr),
+          |    .fdata(fdata),
+          |    .faddr(faddr),
+          |    .rd_valid(rd_valid),
+          |    .rd_data(rd_data),
+          |    .flt_rd_valid(flt_rd_valid),
+          |    .flt_rd_data(flt_rd_data),
+          |    .ibus_valid(io_ibus_valid),
+          |    .ibus_addr(io_ibus_addr),
+          |    .ibus_ready(io_ibus_ready),
+          |    .ibus_rdata(io_ibus_rdata),
+          |    .ibus_fault_valid(io_ibus_fault_valid),
+          |    .ibus_fault_write(io_ibus_fault_bits_write),
+          |    .ibus_fault_addr(io_ibus_fault_bits_addr),
+          |    .ibus_fault_epc(io_ibus_fault_bits_epc),
+          |    .dbus_valid(io_dbus_valid),
+          |    .dbus_ready(io_dbus_ready),
+          |    .dbus_write(io_dbus_write),
+          |    .dbus_pc(io_dbus_pc),
+          |    .dbus_addr(io_dbus_addr),
+          |    .dbus_adrx(io_dbus_adrx),
+          |    .dbus_size(io_dbus_size),
+          |    .dbus_wdata(io_dbus_wdata),
+          |    .dbus_wmask(io_dbus_wmask),
+          |    .dbus_rdata(io_dbus_rdata),
+          |    .ebus_valid(io_ebus_dbus_valid),
+          |    .ebus_write(io_ebus_dbus_write),
+          |    .ebus_pc(io_ebus_dbus_pc),
+          |    .ebus_addr(io_ebus_dbus_addr),
+          |    .ebus_adrx(io_ebus_dbus_adrx),
+          |    .ebus_size(io_ebus_dbus_size),
+          |    .ebus_wdata(io_ebus_dbus_wdata),
+          |    .ebus_wmask(io_ebus_dbus_wmask),
+          |    .ebus_ready(io_ebus_dbus_ready),
+          |    .ebus_rdata(io_ebus_dbus_rdata),
+          |    .ebus_internal(io_ebus_internal),
+          |    .ebus_fault_valid(io_ebus_fault_valid),
+          |    .ebus_fault_write(io_ebus_fault_bits_write),
+          |    .ebus_fault_addr(io_ebus_fault_bits_addr),
+          |    .ebus_fault_epc(io_ebus_fault_bits_epc),
+          |    .flush_valid(io_flush_valid),
+          |    .flush_ready(io_flush_ready),
+          |    .flush_all(io_flush_all),
+          |    .flush_clean(io_flush_clean),
+          |    .flush_fencei(io_flush_fencei),
+          |    .flush_pcNext(io_flush_pcNext),
+          |    .fault_valid(io_fault_valid),
+          |    .fault_write(io_fault_bits_write),
+          |    .fault_addr(io_fault_bits_addr),
+          |    .fault_epc(io_fault_bits_epc),
+          |    .lsu_valid_rvv2lsu(lsu_valid_rvv2lsu),
+          |    .lsu_rvv2lsu(lsu_rvv2lsu),
+          |    .lsu_ready_lsu2rvv(lsu_ready_lsu2rvv),
+          |    .lsu_valid_lsu2rvv(lsu_valid_lsu2rvv),
+          |    .lsu_addr_lsu2rvv(lsu_addr_lsu2rvv),
+          |    .lsu_wdata_lsu2rvv(lsu_wdata_lsu2rvv),
+          |    .lsu_last_lsu2rvv(lsu_last_lsu2rvv),
+          |    .lsu_ready_rvv2lsu(lsu_ready_rvv2lsu),
+          |    .config_state_valid(io_rvvState_valid),
+          |    .config_state(config_state),
+          |    .store_count(io_storeCount),
+          |    .queue_capacity(io_queueCapacity),
+          |    .active(io_active)
+          |  );
+        """.stripMargin
+
+    val result = (moduleInterface ++
+        inputs ++
+        rvv2lsu ++
+        lsu2rvv ++
+        configState ++
+        subModule ++
+        "\nendmodule\n")
+        .replaceAll("GENN", p.instructionLanes.toString)
+        .replaceAll("GENVLENB", p.rvvVlen.toString)
+
+    result
+  }
+}
+
+class LsuSvBlackBox(p: Parameters) extends BlackBox with HasBlackBoxInline
+                                                    with HasBlackBoxResource {
+  val io = IO(new Bundle {
+    val clock = Input(Clock())
+    val reset = Input(AsyncReset())
+
+    val io = new Bundle {
+      // Decode cycle.
+      val req = Vec(p.instructionLanes, Flipped(Decoupled(new LsuCmd(p))))
+      val busPort = Flipped(new RegfileBusPortIO(p))
+      val busPort_flt = Option.when(p.enableFloat)(Flipped(new RegfileBusPortIO(p)))
+
+      // Execute cycle(s).
+      val rd = Valid(Flipped(new RegfileWriteDataIO))
+      val rd_flt = Valid(Flipped(new RegfileWriteDataIO))
+
+      // Cached interface.
+      val ibus = new IBusIO(p)
+      val dbus = new DBusIO(p)
+      val flush = new DFlushFenceiIO(p)
+      val fault = Valid(new FaultInfo(p))
+
+      // DBus that will eventually reach an external bus.
+      // Intended for sending a transaction to an external
+      // peripheral, likely on TileLink or AXI.
+      val ebus = new EBusIO(p)
+
+      // Vector switch.
+      val vldst = Output(Bool())
+
+      val rvv2lsu = Option.when(p.enableRvv)(
+          Vec(2, Flipped(Decoupled(new Rvv2Lsu(p)))))
+      val lsu2rvv = Option.when(p.enableRvv)(Vec(2, Decoupled(new Lsu2Rvv(p))))
+
+      // RVV config state
+      val rvvState = Option.when(p.enableRvv)(Input(Valid(new RvvConfigState(p))))
+
+      val storeCount = Output(UInt(2.W))
+      val queueCapacity = Output(UInt(3.W))
+      val active = Output(Bool())
+    }
+  })
+
+  addResource("hdl/verilog/rvv/inc/rvv_backend_config.svh")
+  addResource("hdl/verilog/rvv/inc/rvv_backend_define.svh")
+  addResource("hdl/verilog/rvv/inc/rvv_backend.svh")
+  addResource("hdl/verilog/scalar/inc/Lsu.svh")
+  addResource("hdl/verilog/scalar/design/Lsu.sv")
+  setInline("LsuSvBlackBox.sv", GenerateLsuSvBlackBoxSource(p, io.io))
+}
+
+class LsuSvWrapper(p: Parameters) extends Lsu(p) {
+  val lsuBB = Module(new LsuSvBlackBox(p))
+  lsuBB.io.clock := clock
+  lsuBB.io.reset := reset
+
+  lsuBB.io.io <> io
+}

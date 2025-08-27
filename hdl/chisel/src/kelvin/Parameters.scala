@@ -136,6 +136,7 @@ class Parameters(var m: Seq[MemoryRegion] = Seq(), val hartId: Int = 0) {
   val lsuDelayPipelineLen = 1
   def dbusSize: Int = { log2Ceil(lsuDataBits / 8) + 1 }
   def useLsuV2: Boolean = { enableRvv }
+  var useLsuSv: false
   var enableDebug = false
   def useDebugModule: Boolean = { useDispatchV2 && enableDebug }
 

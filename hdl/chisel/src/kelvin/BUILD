@@ -318,6 +318,13 @@ chisel_library(
         "scalar/SCore.scala",
         "scalar/UncachedFetch.scala",
     ],
+    resources = [
+        "//hdl/verilog/rvv/inc:rvv_backend_config.svh",
+        "//hdl/verilog/rvv/inc:rvv_backend_define.svh",
+        "//hdl/verilog/rvv/inc:rvv_backend.svh",
+        "//hdl/verilog/scalar/inc:Lsu.svh",
+        "//hdl/verilog/scalar/design:Lsu.sv",
+    ],
     deps = [
         ":KelvinScmInfo",
         ":kelvin_base",
@@ -331,6 +338,7 @@ chisel_library(
         "//hdl/chisel/src/common:fp",
         "//hdl/chisel/src/common:instruction_buffer",
         "//hdl/chisel/src/common:scatter_gather",
+        "//hdl/chisel/src/common:sv_generation_utils",
     ],
 )
 
