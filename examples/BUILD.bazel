@@ -15,6 +15,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//rules:kelvin_v2.bzl", "kelvin_v2_binary")
+load("@kelvin_hw//rules:chisel.bzl", "chisel_test")
 
 kelvin_v2_binary(
     name = "kelvin_v2_hello_world_add_floats",
@@ -24,4 +25,15 @@ kelvin_v2_binary(
 kelvin_v2_binary(
     name = "kelvin_v2_rvv_add_intrinsic",
     srcs = ["rvv_add_intrinsic.cc"],
+)
+
+chisel_test(
+    name = "generate_interface_playground_test",
+    srcs = [
+        "GenerateInterfacePlayground.scala",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//hdl/chisel/src/common:sv_generation_utils",
+    ],
 )
