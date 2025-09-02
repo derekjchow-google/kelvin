@@ -39,7 +39,7 @@ into the ports of a SystemVerilog `module` via code generation.
 
 <table>
 <tr>
-<th>
+<td>
 
 **Chisel**
 ```
@@ -53,8 +53,8 @@ class ExampleModule extends Module {
   io.out := io.in_a + io.in_b
 }
 ```
-</th>
-<th>
+</td>
+<td>
 
 **SystemVerilog (generated)**
 ```
@@ -68,7 +68,7 @@ module ExampleModule(
   assign io_out = io_in_a + io_in_b;
 endmodule
 ```
-</th>
+</td>
 </tr>
 </table>
 
@@ -84,8 +84,9 @@ is used.
 Chisel `Bundles` get generated differently into SystemVerilog when used in
 modules:
 
-<div style="display: flex;">
-<div style="flex: 1; padding-right: 10px;">
+<table>
+<tr>
+<td>
 
 **Chisel**
 ```
@@ -104,12 +105,11 @@ class ComplexExampleModule extends Module {
   ...
 }
 ```
-</div>
-<div style="flex: 1; padding-right: 10px;">
+</td>
+<td>
 
 **SystemVerilog (generated)**
 ```
-
 
 
 module ComplexExampleModule(
@@ -125,8 +125,10 @@ module ComplexExampleModule(
   ...
 endmodule
 ```
-</div>
-</div>
+</td>
+</tr>
+</table>
+
 
 Chisel `Bundle`'s get decomposed into multiple primitive SystemVerilog ports.
 
@@ -147,8 +149,9 @@ class IntReadyValidIO extends Bundle {
 Using this definition, we can define a single-input, single-output queue with
 back pressure as follows:
 
-<div style="display: flex;">
-<div style="flex: 1; padding-right: 10px;">
+<table>
+<tr>
+<td>
 
 **Chisel**
 ```
@@ -166,8 +169,8 @@ class IntegerQueue extends Module {
   ...
 }
 ```
-</div>
-<div style="flex: 1; padding-right: 10px;">
+</td>
+<td>
 
 **SystemVerilog (generated)**
 ```
@@ -186,8 +189,9 @@ endmodule
 
 
 ```
-</div>
-</div>
+</td>
+</tr>
+</table>
 
 Note how in this example, we include two `IntReadyValidIO` interface `Bundle`s
 in the io `Bundle` of the Chisel `Module`. The fields of each interface
@@ -202,8 +206,9 @@ sub-fields, and interface `Bundle` should end with "IO".
 Each element in a Chisel `Module` vector field will populate a new port in the
 SystemVerilog generated module:
 
-<div style="display: flex;">
-<div style="flex: 1; padding-right: 10px;">
+<table>
+<tr>
+<td>
 
 **Chisel**
 ```
@@ -222,8 +227,8 @@ class VectorAdder extends Module {
 
 
 ```
-</div>
-<div style="flex: 1; padding-right: 10px;">
+</td>
+<td>
 
 **SystemVerilog (generated)**
 ```
@@ -242,8 +247,10 @@ module VectorAdder(
   ...
 endmodule
 ```
-</div>
-</div>
+</td>
+</ttr>
+</table>
+
 
 ## Checking a Generated Interface
 
@@ -298,8 +305,9 @@ Chisel's [BlackBox](https://www.chisel-lang.org/docs/explanations/blackboxes)
 mechanism, combined with code generation techniques to "wrap" the idiomtic
 SV Module.
 
-<div style="display: flex;">
-<div style="flex: 1; padding-right: 10px;">
+<table>
+<tr>
+<td>
 
 **Chisel "BlackBox**
 ```
@@ -337,8 +345,8 @@ class FetchBufferBB extends BlackBox with HasBlackBoxInline
   setInline("FetchBufferBB.sv", GenerateSvSource())
 }
 ```
-</div>
-<div style="flex: 1; padding-right: 10px;">
+</td>
+<td>
 
 **SystemVerilog (generated from BlackBox)**
 ```
@@ -377,8 +385,9 @@ module FetchBufferBB(
   );
 endmodule
 ```
-</div>
-<div style="flex: 1; padding-right: 10px;">
+
+</td>
+<td>
 
 **SystemVerilog (to be wrapped)**
 ```
@@ -417,5 +426,6 @@ module FetchBuffer(
   ...
 endmodule
 ```
-</div>
-</div>
+</td>
+</tr>
+</table>
