@@ -37,8 +37,9 @@ Below is a simple example of a Chisel module and it's generated SystemVerilog
 equivalent. There is a mechanical translation of the `io` in a Chisel `Module`
 into the ports of a SystemVerilog `module` via code generation.
 
-<div style="display: flex;">
-<div style="flex: 1; padding-right: 10px;">
+<table>
+<tr>
+<th>
 
 **Chisel**
 ```
@@ -52,8 +53,8 @@ class ExampleModule extends Module {
   io.out := io.in_a + io.in_b
 }
 ```
-</div>
-<div style="flex: 1; padding-right: 10px;">
+</th>
+<th>
 
 **SystemVerilog (generated)**
 ```
@@ -67,8 +68,9 @@ module ExampleModule(
   assign io_out = io_in_a + io_in_b;
 endmodule
 ```
-</div>
-</div>
+</th>
+</tr>
+</table>
 
 > **NOTE:**  The `Module` keyword in Chisel will automatically add a `clock`
 and `reset` ports to a module. For usage in Kelvin, assume `reset` is a
